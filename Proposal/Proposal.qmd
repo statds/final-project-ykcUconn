@@ -1,0 +1,50 @@
+---
+title: "Project Proposal: Time Series Analysis on NYC 311 Request"
+author: "Yang Kang Chua"
+date: "March 23, 2023"
+format:
+  html:
+    code-fold: true
+    embed-resources: true
+  pdf: 
+    geometry: 
+      - top=30mm
+      - left=20mm
+bibliography: references.bib
+jupyter: python3
+---
+
+## Introduction
+
+NYC 311 data is widely used in data analysis to study trends across various categories. This study aims to investigate the time series trend of noise complaints in NYC. The findings will be of great interest to real estate developers and property managers, as they can use the data to understand the noise pattern throughout the year and make informed decisions about where to build new developments and how to mitigate noise impacts on their tenants. Previous research has focused on noise complaints related to COVID-19 and developed a model to predict the type of noise based on the variable [@fisher_2021]. The current study seeks to expand on this research by examining the overall trend in noise complaints over time and identifying any patterns or seasonality.
+
+## Specific Aims
+
+Our research aims to investigate the general trend of noise complaints in New York City and test the hypothesis that noise complaints are similar across all boroughs. This research question is crucial in the field of property management as it informs decisions on where to build to prevent construction near high noise complaint areas. Previous research has shown that certain locations have a higher volume of noise complaints, but most studies did not focus on recent years. For instance, a study by [@niki] found that despite having the largest complaint volume, the Bronx had the quickest response time compared to all other boroughs. However, this study only focused on the year 2021. Our research seeks to address this gap by examining the recent trend in noise complaints in the city.
+
+## Data
+
+Our study uses a data set of NYC 311 requests with locations in New York, collected from different agencies that received noise complaints in the last year (2021-2022). The data set comprises 3,169,763 observations and 41 variables of interest, including complaint type, borough, latitude, and longitude. The nature of the variables in the data set is both quantitative and categorical, with some, such as created date, being time series variables, and others, such as borough, being nominal. The data set was made available to us by the [@nyc311] for research purposes and machine learning modeling. It provides us with the opportunity to conduct a detailed analysis of noise complaints and their patterns across a year.
+
+## Research Design and Methods
+
+To investigate our hypothesis that noise complaints are similar across all boroughs, we will employ various statistical methods. We plan to visualize the data using time series plots, bar charts, heat maps, and other relevant charts to provide a better understanding of the noise complaints in NYC. We will use a Poisson regression model to analyze the data, and predict the number of noise complaints for one month [@date_2022]. This information will help real estate developers identify locations where noise complaints are high and plan new developments accordingly. Our study will also provide valuable insights into the factors that contribute to noise complaints and how they can be mitigated in the future.
+
+## Discussion
+
+Based on our research hypothesis and literature review, we expect to find a correlation between noise complaints and various factors such as changes in the environment, population density, and other demographic characteristics. For instance, we anticipate that noise complaints may increase as the population of a specific borough or neighborhood grows. Our expectation is supported by previous research, which has shown that noise complaints can identify the response time between boroughs. However, our research will focus on analyzing the trends of noise complaints to provide a more nuanced understanding of their seasonal patterns.
+
+Our work has the potential to benefit the real estate industry. By analyzing noise complaints in time series data, real estate developers can identify areas with high noise levels and take measures to reduce noise pollution, making properties more appealing to potential buyers or tenants.
+
+If the results of our investigation do not align with our expectations, it may indicate that a larger dataset needs to be sampled to identify trends in noise complaints over a year. In such a case, we will conduct a careful examination of the data and consider other potential explanations for our findings. We may also revise our research hypothesis for future studies.
+
+## Conclusions
+
+In conclusion, our research proposal aims to explore the trend of noise complaints throughout the year in New York City. By analyzing open data from the NYC 311 requests, we hope to gain valuable insights into the patterns of noise complaints. To provide a comprehensive understanding of this relationship, our study will employ a combination of quantitative and qualitative methods. The potential impacts of our work include providing practical insights for the real estate industry on how to reduce noise pollution and make properties more attractive to potential buyers or tenants. Ultimately, we believe that this research will contribute to a better understanding of noise complaints in New York City and provide practical guidance for the real estate industry to develop properties with lower noise complaints.
+
+## References
+
+:::{#refs}
+
+
+:::
