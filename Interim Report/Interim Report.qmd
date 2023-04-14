@@ -1,0 +1,174 @@
+---
+title: "Interim Report: Time Series Analysis on NYC 311 Request"
+author: "Yang Kang Chua"
+date: last-modified
+format:
+  html:
+    code-fold: false
+    embed-resources: true
+  pdf: 
+    geometry: 
+      - top=30mm
+      - left=20mm
+execute:
+  echo: false
+jupyter: python3
+---
+```{python}
+import pandas as pd
+import numpy as np
+
+from plotnine import *
+
+```
+
+# Training Data
+The Training data is performed with these steps below:
+
+1. `NYC 311` data is filtered to focus on `Noise Complaints`.
+2. From the `Noise Complaints` missing `Latitude` and `Longitude` has been filled and the remaning data 
+   that can't locate has been removed.
+3. Using the available `Latitude` and `Longitude`, missing zipcode has been filled.
+4. Using the available `Zipcode`, missing `Borough` has been filled.
+5. These `Noise Complaints` has been merged with data from `uszipcode`.
+6. The Training data begin by grouping with the `Created Date` and `Borough`with the new column `Num of Noise Complaints`.
+7. `is_holiday` created using package `holidays`.
+8. `Month_name`, `Month_Year` and `Day Type` has been created from the `Date`.
+9. The data then merged with `temperature.csv`. 
+10. Lastly `Population`,`Home Value`,`House Income` for each day has been calculated by averaing the `Population`,`Home Value`,`House Income` by `Borough`.
+
+The Training Data as shown below.
+
+```{python}
+Train = pd.read_csv("Data_Train.csv", index_col = None)
+
+Train = Train.rename(columns={'Weekday': 'Day Type'})
+
+Train['Date'] = pd.to_datetime(Train['Date'])
+
+Train.insert(4, 'Month_name', Train['Date'].dt.month_name())
+Train.insert(5, 'Month_Year', Train['Date'].dt.strftime('%b %Y'))
+
+Train.head()
+```
+
+\n
+
+This is more info to the data.
+```{python}
+Train.info()
+```
+
+# Figures and Plot
+
+```{python}
+(
+ggplot(Train)
+ + geom_line(aes('Date', 'Num of Noise Complaints', color = "Borough"))
+ + ggtitle('Number of Noise Complaints from 2021 to 2022')
+ + ylab("Number of Noise Complaints")
+ + theme(axis_text_x=element_text(angle=75))
+ + theme(figure_size=(15, 6))
+
+)
+```
+
+```{python}
+(
+ ggplot(Train, aes(x='Borough', y='Num of Noise Complaints'))
+ + ggtitle('Number of Noise Complaints across Borough') 
+ + geom_bar(stat='identity')
+ + theme()
+)
+```
+
+```{python}
+
+x_axis_order = Train["Month_Year"]
+(
+    ggplot(Train, aes(x='Month_Year', y = "Num of Noise Complaints", fill='Borough'))
+    + geom_bar(stat='identity')
+    + ggtitle('Number of Noise Complaints across Month and Year') 
+    + scale_x_discrete(limits=x_axis_order)
+    + theme(axis_text_x=element_text(angle=75)) 
+)
+```
+
+
+```{python}
+
+month_order = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
+               "October", "November", "December"]
+(
+ ggplot(Train, aes(x='Month_name', y='Num of Noise Complaints', fill = "Borough")) 
+ + geom_bar(stat='identity')
+ + ggtitle('Number of Noise Complaints across Month') 
+ + scale_x_discrete(limits=month_order)
+ + theme(axis_text_x=element_text(angle=75)) 
+)
+```
+
+```{python}
+Temp_sum = Train.groupby(['TAVG (Degrees Fahrenheit)', 'Borough'])['Num of Noise Complaints'].sum().reset_index()
+
+(
+ ggplot(Temp_sum, aes(x='TAVG (Degrees Fahrenheit)', y='Num of Noise Complaints'))
+ + ggtitle('Number of Noise Complaints vs Temperature across Borough')  
+ + geom_line(stat='identity')
+ + facet_grid('Borough ~ .')
+ + theme(strip_text = element_text(size=5))
+
+)
+
+```
+
+```{python}
+(
+    ggplot(Train, aes(x='Borough',y = 'Num of Noise Complaints', fill='Day Type'))
+    + ggtitle('Number of Noise Complaints across Borough by Day Type') 
+    + geom_boxplot()
+)
+```
+# Hypothesis Test
+```{python}
+#| echo: true
+from scipy.stats import mannwhitneyu
+
+# Create the subset of data
+weekday_dur = Train.loc[Train['Day Type'] == 'Weekday', 'Num of Noise Complaints']
+
+weekend_dur = Train.loc[Train['Day Type'] == 'Weekend', 'Num of Noise Complaints']
+
+# Perform the weekday/weekend comparison
+weekday_weekend_pvalue = mannwhitneyu(weekday_dur, weekend_dur).pvalue
+
+print(weekday_weekend_pvalue)
+```
+
+The null hypothesis is that there is no difference between the distribution of the Number of Complaints between weekdays and weekends. We use Mann-Whitney U test to test this hypothesis. The p value is less than 0.05 so the null hypothesis is rejected, and thus the distribution is different accross weekdays and weekends.
+
+```{python}
+#| echo: true
+# Create the subset of the data
+from scipy.stats import kruskal
+
+group1 =Train[Train['Borough'] == 'BROOKLYN']['Num of Noise Complaints']
+group2 = Train[Train['Borough'] == 'QUEENS']['Num of Noise Complaints']
+group3 = Train[Train['Borough'] == 'MANHATTAN']['Num of Noise Complaints']
+group4 = Train[Train['Borough'] == 'BRONX']['Num of Noise Complaints']
+group5 = Train[Train['Borough'] == 'STATEN ISLAND']['Num of Noise Complaints']
+
+statistic, p_value = kruskal(group1, group2, group3, group4, group5)
+
+print('Borough p-values:', p_value)
+```
+The null hypothesis is that there is no significant median difference in the distribution of the Number of Complaints across the borough.  We use Kruskal-Wallis test to test this hypothesis. The p value is less than 0.05 so the null hypothesis is rejected, suggesting that the medians are different across borough.
+
+# Future Steps
+
+* Implementing poisson regression 
+* Create Testing data using the same steps
+* Looking for more hypothesis testing
+* Further Visualisation method with the original data
+
+
