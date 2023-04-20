@@ -1,0 +1,175 @@
+---
+title: "Model Result: Queens"
+author: "Yang Kang Chua"
+date: last-modified
+format:
+  html:
+    code-fold: false
+    embed-resources: true
+  pdf: 
+    geometry: 
+      - top=30mm
+      - left=20mm
+execute:
+  echo: True
+jupyter: python3
+---
+
+```{python}
+import numpy as np
+import pandas as pd
+from patsy import dmatrices
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+import matplotlib.pyplot as plt
+from plotnine import *
+import matplotlib.dates as mdates
+
+```
+
+Import Train Data
+```{python}
+Train = pd.read_csv("Train_Data.csv", index_col = None)
+
+Train.set_index('Date', inplace=True)
+
+Train.head()
+
+```
+
+Import Test Data
+
+```{python}
+Test = pd.read_csv("Test_data.csv", index_col = None)
+
+Test.set_index('Date', inplace=True)
+
+Test.head()
+```
+
+Get Queens Data
+
+```{python}
+Queens_train = Train[Train['Borough'] == 'QUEENS']
+Queens_test  = Test[Test['Borough'] == 'QUEENS']
+
+```
+
+Create `X_train`, `X_test`, `y_train` and `y_test`.
+```{python}
+expr = """Noise_COUNT ~ is_holiday + MONTH + DAY_OF_WEEK + DAY + Day_Type + TAVG + TMAX + TMIN + PRCP + Population + Home_Value + House_Income"""
+
+y_train_Queens, X_train_Queens = dmatrices(expr, Queens_train, return_type='dataframe')
+y_test_Queens, X_test_Queens = dmatrices(expr, Queens_test, return_type='dataframe')
+```
+
+Find the critical value from the chi-square distribution table
+```{python}
+from scipy.stats import chi2
+
+p = 0.05
+df_resid = 716
+
+crit_val = chi2.ppf(q=1-p, df=df_resid)
+print(crit_val)
+
+```
+
+Create Poisson Regression model
+
+```{python}
+poisson_model_Queens = sm.GLM(y_train_Queens, X_train_Queens, 
+                                        family=sm.families.Poisson()).fit()
+
+poisson_predictions_Queens = poisson_model_Queens.get_prediction(X_test_Queens)
+
+poisson_summary_Queens = poisson_predictions_Queens.summary_frame()
+
+poisson_predictions_Queens =poisson_summary_Queens['mean']
+
+print(poisson_model_Queens.summary())
+
+```
+
+Create Negative Binomial regression model 
+
+```{python}
+Queens_train = Queens_train.copy()
+Queens_train.loc[:, 'BB_LAMBDA'] = poisson_model_Queens.mu
+
+Queens_train.loc[:,'AUX_OLS_DEP'] = Queens_train.apply(
+    lambda x: ((x['Noise_COUNT'] - x['BB_LAMBDA'])**2 - x['BB_LAMBDA']) / 
+    x['BB_LAMBDA'], axis=1)
+
+ols_expr = """AUX_OLS_DEP ~ BB_LAMBDA - 1"""
+
+aux_olsr_results_Queens = smf.ols(ols_expr, Queens_train).fit()
+
+nb2_model_Queens = sm.GLM(y_train_Queens, X_train_Queens,
+                                    family=sm.families.NegativeBinomial(alpha=aux_olsr_results_Queens.params[0])).fit()
+
+nb2_predictions_Queens = nb2_model_Queens.get_prediction(X_test_Queens)
+
+nb2_summary_frame_Queens = nb2_predictions_Queens.summary_frame()
+
+nb2_predicted_Queens = nb2_summary_frame_Queens['mean']
+
+print(nb2_model_Queens.summary())
+
+```
+
+Poisson Regression model actual vs predicted
+```{python}
+actual_counts = y_test_Queens['Noise_COUNT']
+
+fig, ax = plt.subplots(figsize = (9,6))
+fig.suptitle('Predicted versus actual Number of complaints in Queens')
+ax.plot(X_test_Queens.index, poisson_predictions_Queens, 
+'go-', label='Predicted counts')
+ax.plot(X_test_Queens.index, actual_counts, 'ro-', label='Actual counts')
+
+locator = mdates.DayLocator()
+formatter = mdates.DateFormatter('%d')
+ax.xaxis.set_major_locator(locator)
+ax.xaxis.set_major_formatter(formatter)
+plt.legend()
+plt.show()
+
+```
+
+Negative Binomial regression model actual vs predicted
+
+```{python}
+
+fig, ax = plt.subplots(figsize = (9,6))
+fig.suptitle('Predicted versus actual Number of complaints in Queens')
+ax.plot(X_test_Queens.index, nb2_predicted_Queens, 
+'go-', label='Predicted counts')
+ax.plot(X_test_Queens.index, actual_counts, 'ro-', label='Actual counts')
+
+locator = mdates.DayLocator()
+formatter = mdates.DateFormatter('%d')
+ax.xaxis.set_major_locator(locator)
+ax.xaxis.set_major_formatter(formatter)
+plt.legend()
+plt.show()
+
+```
+
+Which is better?
+
+```{python}
+
+lrt_stat = 2 * (nb2_model_Queens.llf - poisson_model_Queens.llf)
+
+# Calculate critical value at 1% significance level
+from scipy.stats import chi2
+crit_val = chi2.ppf(0.99, df=1)
+
+# Compare test statistic to critical value
+if lrt_stat > crit_val:
+    print("Reject null hypothesis: NB2 model is a better fit than Poisson model.")
+else:
+    print("Fail to reject null hypothesis: Poisson model is a better fit than NB2 model.")
+
+```

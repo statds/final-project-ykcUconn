@@ -1,0 +1,175 @@
+---
+title: "Model Result: Bronx"
+author: "Yang Kang Chua"
+date: last-modified
+format:
+  html:
+    code-fold: false
+    embed-resources: true
+  pdf: 
+    geometry: 
+      - top=30mm
+      - left=20mm
+execute:
+  echo: True
+jupyter: python3
+---
+
+```{python}
+import numpy as np
+import pandas as pd
+from patsy import dmatrices
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+import matplotlib.pyplot as plt
+from plotnine import *
+import matplotlib.dates as mdates
+
+```
+
+Import Train Data
+```{python}
+Train = pd.read_csv("Train_Data.csv", index_col = None)
+
+Train.set_index('Date', inplace=True)
+
+Train.head()
+
+```
+
+Import Test Data
+
+```{python}
+Test = pd.read_csv("Test_data.csv", index_col = None)
+
+Test.set_index('Date', inplace=True)
+
+Test.head()
+```
+
+Get Bronx Data
+
+```{python}
+Bronx_train = Train[Train['Borough'] == 'BRONX']
+Bronx_test  = Test[Test['Borough'] == 'BRONX']
+
+```
+
+Create `X_train`, `X_test`, `y_train` and `y_test`.
+```{python}
+expr = """Noise_COUNT ~ is_holiday + MONTH + DAY_OF_WEEK + DAY + Day_Type + TAVG + TMAX + TMIN + PRCP + Population + Home_Value + House_Income"""
+
+y_train_Bronx, X_train_Bronx = dmatrices(expr, Bronx_train, return_type='dataframe')
+y_test_Bronx, X_test_Bronx = dmatrices(expr, Bronx_test, return_type='dataframe')
+```
+
+Find the critical value from the chi-square distribution table
+```{python}
+from scipy.stats import chi2
+
+p = 0.05
+df_resid = 716
+
+crit_val = chi2.ppf(q=1-p, df=df_resid)
+print(crit_val)
+
+```
+
+Create Poisson Regression model
+
+```{python}
+poisson_model_Bronx = sm.GLM(y_train_Bronx, X_train_Bronx, 
+                                        family=sm.families.Poisson()).fit()
+
+poisson_predictions_Bronx = poisson_model_Bronx.get_prediction(X_test_Bronx)
+
+poisson_summary_Bronx = poisson_predictions_Bronx.summary_frame()
+
+poisson_predictions_Bronx =poisson_summary_Bronx['mean']
+
+print(poisson_model_Bronx.summary())
+
+```
+
+Create Negative Binomial regression model 
+
+```{python}
+Bronx_train = Bronx_train.copy()
+Bronx_train.loc[:, 'BB_LAMBDA'] = poisson_model_Bronx.mu
+
+Bronx_train.loc[:,'AUX_OLS_DEP'] = Bronx_train.apply(
+    lambda x: ((x['Noise_COUNT'] - x['BB_LAMBDA'])**2 - x['BB_LAMBDA']) / 
+    x['BB_LAMBDA'], axis=1)
+
+ols_expr = """AUX_OLS_DEP ~ BB_LAMBDA - 1"""
+
+aux_olsr_results_Bronx = smf.ols(ols_expr, Bronx_train).fit()
+
+nb2_model_Bronx = sm.GLM(y_train_Bronx, X_train_Bronx,
+                                    family=sm.families.NegativeBinomial(alpha=aux_olsr_results_Bronx.params[0])).fit()
+
+nb2_predictions_Bronx = nb2_model_Bronx.get_prediction(X_test_Bronx)
+
+nb2_summary_frame_Bronx = nb2_predictions_Bronx.summary_frame()
+
+nb2_predicted_Bronx = nb2_summary_frame_Bronx['mean']
+
+print(nb2_model_Bronx.summary())
+
+```
+
+Poisson Regression model actual vs predicted
+```{python}
+actual_counts = y_test_Bronx['Noise_COUNT']
+
+fig, ax = plt.subplots(figsize = (9,6))
+fig.suptitle('Predicted versus actual Number of complaitns in Bronx')
+ax.plot(X_test_Bronx.index, poisson_predictions_Bronx, 
+'go-', label='Predicted counts')
+ax.plot(X_test_Bronx.index, actual_counts, 'ro-', label='Actual counts')
+
+locator = mdates.DayLocator()
+formatter = mdates.DateFormatter('%d')
+ax.xaxis.set_major_locator(locator)
+ax.xaxis.set_major_formatter(formatter)
+plt.legend()
+plt.show()
+
+```
+
+Negative Binomial regression model actual vs predicted
+
+```{python}
+
+fig, ax = plt.subplots(figsize = (9,6))
+fig.suptitle('Predicted versus actual Number of complaitns in Bronx')
+ax.plot(X_test_Bronx.index, nb2_predicted_Bronx, 
+'go-', label='Predicted counts')
+ax.plot(X_test_Bronx.index, actual_counts, 'ro-', label='Actual counts')
+
+locator = mdates.DayLocator()
+formatter = mdates.DateFormatter('%d')
+ax.xaxis.set_major_locator(locator)
+ax.xaxis.set_major_formatter(formatter)
+plt.legend()
+plt.show()
+
+```
+
+Which is better?
+
+```{python}
+
+lrt_stat = 2 * (nb2_model_Bronx.llf - poisson_model_Bronx.llf)
+
+# Calculate critical value at 1% significance level
+from scipy.stats import chi2
+crit_val = chi2.ppf(0.99, df=1)
+
+# Compare test statistic to critical value
+if lrt_stat > crit_val:
+    print("Reject null hypothesis: NB2 model is a better fit than Poisson model.")
+else:
+    print("Fail to reject null hypothesis: Poisson model is a better fit than NB2 model.")
+
+```
