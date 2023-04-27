@@ -1,0 +1,148 @@
+---
+title: Time Series Analysis on NYC 311 Request
+author:
+  - name: Yang Kang Chua
+    email: yang_kang.chua@uconn.edu
+    affiliations: 
+        - id: some-tech
+          name: Univeristy of Connecticut
+          department: Mechanical Engineering Department
+          address: 191 Auditorium Rd. U-3139
+          city: Storrs
+          state: CT
+          postal-code: (06269)
+    attributes:
+        corresponding: False
+abstract: |
+  This study aims to investigate the time series trend of noise complaints in New York City (NYC) using NYC 311 data. The research hypothesis is that noise complaints are similar across all boroughs, and the findings will be of interest to property developers and managers for making informed decisions about where to build new developments and how to mitigate noise impacts. The study employs various statistical methods, including time series plots, bar charts, and a Poisson regression model, to analyze the data and predict the number of noise complaints. The results of this investigation have the potential to benefit the real estate industry by identifying areas with high noise levels and taking measures to reduce noise pollution, making properties more appealing to potential buyers or tenants. The study concludes that analyzing noise complaints in time series data can provide valuable insights into the patterns of noise complaints in NYC and offer practical guidance for the real estate industry to develop properties with lower noise complaints.
+keywords: 
+  - Time Series Analysis
+  - NYC Open Data
+  - Noise Complaints
+date: last-modified
+bibliography: bibliography.bib
+format:
+  elsevier-pdf:
+    keep-tex: true
+    journal:
+      name: STAT 3255/5255 @ UConn
+      formatting: preprint
+      model: 3p
+
+---
+
+# Introduction
+
+The impact of noise complaints on the property and real estate industry has garnered increasing attention in recent years. The volume of noise complaints within an area can have a significant effect on the value and selling potential of a property, making it a critical issue for real estate agents. In some cases, properties situated in areas with a high number of noise complaints may be difficult to sell, and real estate agents may struggle to identify locations with low noise complaint rates. To address this issue, there is a growing need for statistical analyses that can help identify patterns and trends in noise complaints throughout New York City, ultimately providing valuable insights for real estate professionals.
+
+Extensive research has been conducted in the field of analyzing noise complaints, with most studies starting by analyzing the NYC 311 service request data. For instance, Fisher (2021) conducted a study on the noise complaints related to COVID-19 and developed a model that predicts the type of noise based on specific variables @fisher_2021. Such research allows real estate agents to identify specific types of complaints based on certain conditions. Additionally, Niki (2021) used NYC 311 data to perform an analysis on response time from the request. This information is beneficial for identifying areas that contain the fastest response time @niki. According to the research, Bronx had the quickest response time compared to all other boroughs. However, these studies are not the most updated, and it is essential to develop new statistical analyses to identify patterns related to noise complaints in New York City, particularly their impact on property values.
+
+This study aims to investigate the temporal patterns of noise complaints and to develop a time series analysis to predict the future number of noise complaints in a given area. The results of this analysis will be a valuable tool for real estate agents, allowing them to make informed decisions about which neighborhoods to invest in and which to avoid. Additionally, the findings may enable agents to negotiate better deals for their clients. For instance, they may use the data to persuade sellers to lower their asking price or offer concessions to address noise issues. Ultimately, this research will provide a valuable contribution to the understanding of noise complaints and their impact on the real estate market.
+
+In this paper, we will begin by providing an overview of the importance of noise complaints in the real estate industry, as well as a review of relevant literature on the topic. Next, we will describe the data used in this study and the methods we employed for our time series analysis. We will then present our findings, including an analysis of noise complaint trends and a prediction for future noise complaints in the selected areas. Finally, we will conclude with a discussion of the implications of our results for real estate agents and suggestions for future research in this area.
+
+# Data
+
+In this study, we aim to investigate noise complaints in New York City from 2010 to 2022 by utilizing publicly available data from the NYC Open Data Portal @nyc311. The dataset provides comprehensive information on the location, date, and type of each complaint. We have focused our analysis on the time frame of 2021 to 2022, which comprises 1,507,956 observations and 41 variables of interest. These variables include complaint type, borough, latitude, and longitude, among others. The data is a combination of quantitative and categorical variables, including time series variables, such as created date, and nominal variables, such as borough.
+
+To ensure the reliability of our analysis, the data underwent thorough cleaning and preprocessing. We removed duplicate entries, handled missing values, and aggregated the data by year and borough. Additionally, we merged the dataset with temperature data, which contains four variables of interest, namely average temperature, maximum temperature, minimum temperature, and snow precipitation. Furthermore, we incorporated zipcode-level data to obtain population density, home value, and household income. Other relevant data, such as whether it was a holiday or a weekend, was also included to aid our analysis.
+
+This comprehensive dataset provides us with an excellent opportunity to conduct a detailed analysis of noise complaints and their patterns over a year. The additional data that we have incorporated will enable us to draw more informed conclusions and provide greater insights into the relationships between noise complaints and various socio-economic factors. @fig-Number_of_noise_complaint_vs_year show the plot of the full data related to noise complaints. 
+
+![Noise Complaint by year](Number_of_noise_complaint_vs_year.png){#fig-Number_of_noise_complaint_vs_year}
+
+# Research Design and Methods
+
+In this study, we aim to analyze the pattern of noise complaints in New York City from 2021 to 2022 using a time series analysis approach. To begin, we will examine the descriptive statistics of the data and visualize the trends and patterns using graphical tools such as line plots and bar plots.
+
+Our analysis will include hypothesis testing on the time series to study whether noise complaints are similar across all boroughs. We will utilize Poisson regression and negative binomial regression models to analyze the data and predict the number of noise complaints for one month @date_2022. These two models will be compared to discuss the performance of the model, and to provide insights into the factors that contribute to noise complaints and how they can be mitigated in the future.
+
+Our study will provide valuable insights for real estate developers to identify locations where noise complaints are high and plan new developments accordingly. The introductory model will be explained below to provide a clear understanding of the methodologies used in our analysis.
+
+All analyses are performed using the Python programming language and relevant packages such as pandas, statsmodels, and scikit-learn.
+
+## Poisson Regression Model @date_2022
+
+The Poisson distribion has the following Probabilty Mass Function:
+
+$$
+P_X(k)= \frac{e^{-\lambda t}*(\lambda t)^{k}}{k!}
+$${#eq-pmf}
+
+Where $P_X(k)$ is the probability of seeing $k$ events in time $t$, and $\lambda$ is the number of events per unit time. The expected value (mean) for a poisson distribution is $\lambda$.
+
+When the event rate $\lambda$ is constant, the predicted values will also be constant and equal to $\lambda$. However, in real-world scenarios, the event rate is influenced by a vector of explanatory variables, also known as **predictors**, **regression variables**, or **regressors**. This matrix of regression variables is denoted by $X$. The goal of the regression model is to fit the observed count $y$ to the matrix $X$. This requires estimating the values of a vector of regression coefficients $\beta$, which will be used to model the relationship between the dependent variable and the explanatory variables.
+
+The link function below works great for possion regression model because it keep $\lambda$ non-negative even when the regressors $X$ or the regression coefficient $\beta$ have negative values.
+
+$$
+\lambda = e^{\mathbf{X}\beta}
+$${#eq-lamda}
+
+After the model is trained on the data set, the regression coefficients $\beta$ are determined, and the model is then used to make predictions. To predict the event count $y_p$ associated with an input row of regressors $x_p$, we use the following formula:
+
+$$
+y_p = \lambda_{p} = e^{x_p\beta}
+$${#eq-predicted}
+
+The regression coefficients $\beta$ can be estimated using maximum likelihood estimation (MLE), which involves finding the values of $\beta$ that maximize the likelihood function given the observed data.
+
+## Negative Binomial Regression Model
+
+Negative binomial regression is a type of regression analysis that is useful for modeling count data when the variance of the dependent variable is greater than the mean, violating the assumptions of the Poisson regression model. It is a generalization of Poisson regression, which assumes that the variance of the dependent variable is equal to its mean.
+
+In this research, we will be using NB2 model where the variance formula are shown below:
+
+$$
+Variance = mean + \alpha * mean^{2}
+$${#eq-variance}
+
+$$
+\frac{(y_i -\lambda_i)^{2}-\lambda_i}{\lambda_i} = \alpha \lambda_i
+$${#eq-OLS-regression}
+
+We estimated $\alpha$ through an auxiliary OLS regression using @eq-OLS-regression, using $\lambda$ values obtained from the training results of the Poisson regression model. The NB2 model is widely used in fields such as public health, ecology, and economics to model count data, such as the number of hospital admissions, species in a particular area, or sales within a given time frame. It is also applied in social science research to model voting behavior, crime rates, and other phenomena that can be counted.
+
+# Results
+
+Our research paper delves into the distribution of noise complaints across different boroughs in New York City. To begin with, we analyzed the number of noise complaints by borough as shown in @fig-by_borough, and found that Staten Island had the lowest number of complaints while the Bronx had the highest. This initial analysis provided valuable insight into the overall distribution of noise complaints across the boroughs, although it is important to note that factors like population density, neighborhood types, and traffic levels could also influence these results. Nonetheless, this analysis laid the foundation for further investigation.
+
+![Noise Complaint by brough](by_borough.png){#fig-by_borough height=40%}
+
+We then explored the hypothesis based on the distribution of the Number of Complaints across weekdays and weekends, as shown in @fig-by_borough_by_week. Our null hypothesis was that there is no difference in the distribution of the Number of Complaints between weekdays and weekends. To test this, we employed the Mann-Whitney U test and found a p-value of less than 0.05. This result led us to reject the null hypothesis and conclude that the distribution of the Number of Complaints is indeed different between weekdays and weekends.
+
+Furthermore, we also tested the null hypothesis that there is no significant median difference in the distribution of the Number of Complaints across the borough. We used the Kruskal-Wallis test for this purpose and found that the p-value was less than 0.05. As a result, we rejected the null hypothesis and concluded that there is a significant difference in the median Number of Complaints across boroughs.
+
+Overall, our research provides valuable insights into the distribution of noise complaints across different boroughs in New York City, and highlights the importance of considering factors like weekdays vs. weekends and boroughs when analyzing noise complaints.
+
+![Noise Complaint by brough by week type](by_borough_by_week.png){#fig-by_borough_by_week height=30%}
+
+In this research, we analyze the performance of Poisson regression and negative binomial regression models on time series data for different boroughs. First, we evaluate the performance of the Poisson regression model on the Bronx data set, as shown in @fig-bronx_poisson_model. The Deviance and Pearson chi-squared values reported for the model are extremely high, indicating a poor fit to the training data. We use the χ2 table to assess the goodness-of-fit at a 95% confidence level and find that the Poisson regression model has fit the training data poorly.
+
+Next, we compare the performance of the NB2 model to the Poisson regression model for the Bronx data set. The NB2 model, as illustrated in @fig-bronx_nb_model, reports Deviance and Pearson chi-squared values of 515.14 and 584, respectively, indicating a better fit than the Poisson regression model. However, the chi-squared table shows that the model is still sub-optimal.
+
+::: {#fig-model_result layout-ncol=2}
+
+![Poisson Regression model for Bronx](bronx_poisson_model.png){#fig-bronx_poisson_model width=70%}
+
+![Negative Binomial Regression Model for Bronx](bronx_nb_model.png){#fig-bronx_nb_model width=70%}
+
+Model Result Report
+
+:::
+
+We visualize the comparison between the predicted and actual number of complaints in the Bronx for the month of January in @fig-bronx_result. This allows us to gain insight into the performance of the model and identify any potential areas for improvement.
+
+To quantitatively compare the performance of the NB2 and Poisson regression models, we use the Likelihood-ratio test. The LR test statistic, which is calculated as negative two times the difference in the fitted log-likelihoods of the two models, shows that the trained NB2 regression model has demonstrated a much better goodness-of-fit than the Poisson regression model on the bicyclists data set.
+
+![Predicted vs actual result for Bronx](Bronx_result.png){#fig-bronx_result height=40%}
+
+Overall, our research demonstrates that the negative binomial regression model is a better choice than the Poisson regression model for modeling the time series data for noise complaints in the Bronx. Further details and model reports are available in the github repository.
+
+# Conclusions
+
+In conclusion, this research has shed light on the trends of noise complaints in New York City, providing insights on the number of complaints per borough, the impact of weekdays versus weekends, and the difference in median complaints across boroughs. Our findings suggest that the Negative Binomial Regression model is more effective than the Poisson Regression model for predicting future complaints. The real estate industry can use this information to make properties more appealing to potential buyers or tenants by implementing strategies to reduce noise pollution. Overall, this study has contributed to a better understanding of noise complaints in New York City and can guide the development of properties with lower noise complaints.
+
+# References {-}
+
+
